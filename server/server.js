@@ -4,9 +4,11 @@
 // =============================================================================
 
 // call the packages we need
-var express    = require('express');        // call express
-var app        = express();                 // define our app using express
-var bodyParser = require('body-parser');
+var express    = require('express');        // Call express
+var app        = express();                 // Define our app using express
+var bodyParser = require('body-parser');    // Parse JSON
+var request    = require('request');        // Send HTTP requests to get data
+var fs         = require("fs");             // Read data files
 
 // configure app to use bodyParser()
 // this will let us get the data from a POST
@@ -24,6 +26,17 @@ router.get('/', function(req, res) {
     res.json({ message: 'hooray! welcome to our api!' });
 });
 
+//Route for testing
+router.post('/test', function(req, res) {
+    console.log(req);
+    res.json({ reponse: req.body.message });
+});
+
+//Route for events
+router.get('/events', function(req, res) {
+    res.json({ message: 'hooray! welcome to our api!' });
+});
+
 // more routes for our API will happen here
 
 // REGISTER OUR ROUTES -------------------------------
@@ -32,5 +45,8 @@ app.use('/api', router);
 
 // START THE SERVER
 // =============================================================================
+events = fs.readFileSync(__dirname + '/data/Événements_2017.geojson');
+console.log("events: " + events);
+
 app.listen(port);
 console.log('Magic happens on port ' + port);
