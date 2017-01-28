@@ -1,0 +1,2 @@
+C:\Users\vincent\Downloads\HackHarvard2016\CogniboxHackathon\platforms\android\build\intermediates\classes\debug
+C:\Users\vincent\Downloads\HackHarvard2016\CogniboxHackathon\platforms\android\build\intermediates\pre-dexed\debug\classes-d03fd052dcd4a2e85ab8173d4481c671a59271e1.jar

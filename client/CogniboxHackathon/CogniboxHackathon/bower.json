@@ -1,0 +1,6 @@
+{
+  "name": "CogniboxHackathon",
+  "dependencies": {
+    "angular-material": "^1.1.1"
+  }
+}

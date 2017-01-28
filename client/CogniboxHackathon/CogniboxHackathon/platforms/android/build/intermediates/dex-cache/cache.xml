@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<items version="2" >
+
+    <item
+        jar="C:\Users\vincent\Downloads\HackHarvard2016\CogniboxHackathon\platforms\android\build\intermediates\exploded-aar\android\CordovaLib\unspecified\debug\classes.jar"
+        jumboMode="false"
+        revision="23.0.1"
+        sha1="67213c3ba4acf724ee6630017eff318463e1bffd">
+        <dex dex="C:\Users\vincent\Downloads\HackHarvard2016\CogniboxHackathon\platforms\android\build\intermediates\pre-dexed\debug\classes-d03fd052dcd4a2e85ab8173d4481c671a59271e1.jar" />
+    </item>
+
+</items>
