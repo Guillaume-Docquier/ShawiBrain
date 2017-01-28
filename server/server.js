@@ -21,28 +21,53 @@ var port = process.env.PORT || 8080;        // set our port
 // =============================================================================
 var router = express.Router();              // get an instance of the express Router
 
-// test route to make sure everything is working (accessed at GET http://localhost:8080/api)
+//Home API, gives some info
 router.get('/', function(req, res) {
-    res.json({ message: 'hooray! welcome to our api!' });
-});
-
-//Route for testing
-router.post('/test', function(req, res) {
-    console.log(req);
-    res.json({ reponse: req.body.message });
-});
-
-//Route for events
-router.get('/events', function(req, res) {
     res.json({
-        message: 'hooray! welcome to our api!',
+        message: 'Welcome to our api!',
         structure:
         {
             url: 'api/test',
             type: 'POST',
-            expects: 'key = message'
+            expects: 'key = message',
             returns: 'Your message in key = response'
+        },
+        {
+            url: 'api/brain',
+            type: 'GET',
+            expects: 'nothing',
+            returns: 'A greeting'
+        },
+        {
+            url: 'api/brain',
+            type: 'POST',
+            expects: 'nothing, yet',
+            returns: 'Nothing relevant, yet'
         }
+    });
+});
+
+//Route for testing
+//Returns the incoming message
+router.post('/test', function(req, res) {
+    console.log(req.body);
+    res.json({ reponse: req.body.message });
+});
+
+//Route for brain requests
+//Greets the user
+router.get('/brain', function(req, res) {
+    res.json({
+        message: 'Welcome to Shawi Brain!',
+    });
+});
+
+//Route for brain requests
+//Thinks
+router.post('/brain', function(req, res) {
+    //Do something with req
+    res.json({
+        message: 'Brain is not ready!',
     });
 });
 
@@ -55,7 +80,6 @@ app.use('/api', router);
 // START THE SERVER
 // =============================================================================
 events = fs.readFileSync(__dirname + '/data/Événements_2017.geojson');
-console.log("events: " + events);
 
 app.listen(port);
 console.log('Magic happens on port ' + port);
