@@ -34,7 +34,16 @@ router.post('/test', function(req, res) {
 
 //Route for events
 router.get('/events', function(req, res) {
-    res.json({ message: 'hooray! welcome to our api!' });
+    res.json({
+        message: 'hooray! welcome to our api!',
+        structure:
+        {
+            url: 'api/test',
+            type: 'POST',
+            expects: 'key = message'
+            returns: 'Your message in key = response'
+        }
+    });
 });
 
 // more routes for our API will happen here
