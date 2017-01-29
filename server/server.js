@@ -353,7 +353,9 @@ router.get('/brain', function(req, res)
 //Thinks
 router.post('/brain', function(req, res)
 {
-    console.log("POST on /brain: " + JSON.stringify(req.body));
+    console.log("POST on /brain: " + JSON.stringify(req));
+    console.log("With body: " + JSON.stringify(req.body));
+    console.log("With message: " + JSON.stringify(req.body.message));
     sendRequestToWit(removeDiacritics(req.body.message), function(data) {
         console.log("Answer: " + data);
         res.json({reponse: data});
