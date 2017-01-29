@@ -303,17 +303,22 @@ const actions = {
         var location      = firstEntityValue(entities, 'location');
         var buildingType  = firstEntityValue(entities, 'buildingType');
         var eventName     = firstEntityValue(entities, 'eventName');
+        var intent        = firstEntityValue(entities, 'intent');
 
         //Logging
         console.log("eventType: " + eventType);
         console.log("time: " + time);
         console.log("location: " + location);
+        console.log("buildingType: " + buildingType);
+        console.log("eventName: " + eventName);
+        console.log("intent: " + intent);
         console.log(entities);
 
         //Load storage variables
         lookupKeys = ["TYPE", "LIEU", "NOM", "DATE1", "LIEU"]; //TODO add time
         lookupArgs = [eventType, location, eventName, null, buildingType]; //TODO add time
-        outputKey = outputKeys[firstEntityValue(entities, 'intent')];
+        outputKey = outputKeys.event[intent];
+        console.log("outputKey: " + outputKey);
         list = events;
 
         return context;
@@ -326,6 +331,7 @@ const actions = {
 
         //Get info
         var buildingType  = firstEntityValue(entities, 'buildingType');
+        var intent        = firstEntityValue(entities, 'intent');
         var quantity;
 
         //Logging
@@ -335,7 +341,7 @@ const actions = {
         //Load storage variables
         lookupKeys = ["Desc_", "Nom_Patrim"];
         lookupArgs = [buildingType, buildingType];
-        outputKey = outputKeys.patrimoine[firstEntityValue(entities, 'intent')];
+        outputKey = outputKeys.patrimoine[intent];
         list = patrimoine;
 
         return context;
@@ -497,6 +503,7 @@ function distance(latLngJson, lngLatArray)
 }
 function findClosestLocation()
 {
+    console.log("CLOSEST PLEASE!");
     //Empty list
     var closestItem;
     if(!list || list.length == 0)
@@ -521,28 +528,38 @@ function findClosestLocation()
 }
 function findData()
 {
+    console.log("Finding data...");
     var results = [];
     if(!list || !outputKey)
     {
+        //console.log("list: " + list + "outputKey: " + outputKey);
         return results;
     }
     for(var i = 0; i < list.length; i++)
     {
         var found = true;
+        var hits = 0;
         for(var j = 0; j < lookupKeys.length; j++)
         {
+            console.log("lookupKeys: " + lookupKeys[j] + ", lookupArgs: " + lookupArgs[j]);
             if(lookupKeys[j] && lookupArgs[j])
             {
                 var cleanedData = removeDiacritics(list[i].properties[lookupKeys[j]]);
                 var cleanedArg = removeDiacritics(lookupArgs[j]);
-                //console.log("cleanedData: " + cleanedData + ", cleanedArg: " + cleanedArg);
                 if(cleanedData.search(cleanedArg) == -1)
                 {
                     found = false;
                 }
+                else
+                {
+                    hits++;
+                    console.log("cleanedData: " + cleanedData + ", cleanedArg: " + cleanedArg);
+                    //console.log("outputKey: " + outputKey);
+                    console.log("found: " + found + ", lookupKeys.length: " + lookupKeys.length + ", j: " + j);
+                }
             }
         }
-        if(found)
+        if(found || (list == patrimoine && hits))
         {
             if(outputKey == "ALL")
             {
@@ -556,7 +573,7 @@ function findData()
     }
     if(!results.length)
     {
-        results.push(outputRandom(noResult));
+        results.push(outputRandom(noResult, "error"));
     }
     return results;
 }
@@ -574,7 +591,7 @@ function outputRandom(list, key)
 {
     max = list.length;
     var randomIndex = (Math.floor(Math.random() * (max - 1)) + (max - Math.floor(Math.random() * (max - 1)))) / 2;
-    return {[key]: list[Math.floor(randomIndex)]};
+    return [{[key]: list[Math.floor(randomIndex)]}];
 }
 //[]
 // START THE SERVER
@@ -609,12 +626,15 @@ var noResult = [
     "Rien ne semble correspondre à ça!",
     "23456987 itérations. 0 résultats.",
     "C'est embarrassant....",
-    ":(",
-    "Sorry, my translation unit is broken...",
+    "il n'y a rien :(",
     "Il n'y a pas de résultats"
 ]
 var noConfidence = [
-    "Je n'ai pas compris"
+    "Je n'ai pas compris",
+    "C'est du chinois tout ça!",
+    "Ask Google...",
+    "Comment suis-je sensée savoir?",
+    "Sorry, my translation unit is broken..."
 ]
 
 //wit variables
