@@ -143,6 +143,7 @@ function fixDates(list, lookupKey)
     for(var i = 0; i < list.length; i++)
     {
         list[i].properties[lookupKey] = fixDate(list[i].properties[lookupKey]);
+        console.log("Dates: " + JSON.stringify(list[i].properties[lookupKey]));
     }
 }
 
@@ -153,16 +154,17 @@ function fixDates(list, lookupKey)
 function fixDate(stringDate)
 {
     var dateSets = []; //temp
-    var goodDate = []; //will return
+    var goodDates = []; //will return
+    var offset = 0;
 
     //Extract date sets
     var pos = stringDate.indexOf(',');
     while (pos != -1)
     {
         //Store first part
-        dateSets.push(stringDate.slice(0, pos));
+        dateSets.push(stringDate.slice(offset, pos));
         //Remove first part
-        var offset = 1; //remove comma
+        offset = 1; //remove comma
         if(stringDate[pos] == ' ')
         {
             offset++; //remove space
@@ -170,8 +172,17 @@ function fixDate(stringDate)
         stringDate = stringDate.slice(pos + offset, stringDate.length);
         //Find next
         pos = stringDate.indexOf(',');
+        if(stringDate[pos] == ' ')
+        {
+            offset = 1; //ignore space
+        }
     }
-    dateSets.push(stringDate.slice(0, stringDate.length)); //push last
+    offset = 0;
+    if(stringDate[pos+1] == ' ')
+    {
+        offset = 1; //remove space
+    }
+    dateSets.push(stringDate.slice(offset, stringDate.length)); //push last
 
     //Extract date ranges
     for(var i = 0; i < dateSets.length; i++)
@@ -184,7 +195,7 @@ function fixDate(stringDate)
 
             //Find start date
             var startDate = date.slice(0, pos);
-            date.slice(pos + 1, date.length); //remove comma
+            date = date.slice(pos + 1, date.length); //remove comma
 
             //Find end date
             pos = date.indexOf(' ');
@@ -195,16 +206,46 @@ function fixDate(stringDate)
             var numberOfDates = parseInt(endDate) - parseInt(startDate) + 1;
             for(var j = 0; j < numberOfDates; j++)
             {
-                var dateToPush = startDate + " " + date;
+                var day = parseInt(startDate) + j;
+                var dateToPush = (parseInt(startDate) + j) + " " + date;
                 goodDates.push({date: dateToPush});
             }
             //Remove this date from set
-
+            dateSets[i] = null;
         }
     }
 
     //Extract sum of dates
+    for(var i = 0; i < dateSets.length; i++)
+    {
+        if(dateSets[i])
+        {
+            pos = dateSets[i].indexOf(' et ');
+            if(pos != -1)
+            {
+                var date = dateSets[i];
+                //First date
+                var firstDate = date.slice(0, pos);
+                date = date.slice(pos + 4, date.length); //remove ' et '
 
+                //Second date
+                pos = date.indexOf(' ');
+                var secondDate = date.slice(0, pos);
+                date = date.slice(pos + 1, date.length); // remove ' '
+
+                //Add to return set
+                var dateToPush = firstDate + " " + date;
+                goodDates.push({date: dateToPush});
+                dateToPush = secondDate + " " + date;
+                goodDates.push({date: dateToPush});
+            }
+            else //date is valid
+            {
+                goodDates.push({date: dateSets[i]});
+            }
+        }
+    }
+    return goodDates;
 }
 
 // WIT.AI
@@ -285,8 +326,15 @@ function sendRequestToWit(req, callback){
 		req, // the user's message
 		sessions[sessionId].context // the user's current session state
     ).then((context) => {
-        //Find your data
-		var data = findData();
+		var data;
+
+        if(outputKey == 'greet')
+        {
+            data = outputRandom(greeting);
+        }
+        else { //Find your data
+            data = findData();
+        }
 
         //Reset storage variables
         resetStorage();
@@ -354,8 +402,6 @@ router.get('/brain', function(req, res)
 router.post('/brain', function(req, res)
 {
     console.log("POST on /brain...");
-    console.log(req);
-    console.log("With body: " + JSON.stringify(req.body));
     console.log("With message: " + JSON.stringify(req.body.message));
     sendRequestToWit(removeDiacritics(req.body.message), function(data) {
         console.log("Answer: " + data);
@@ -386,10 +432,12 @@ function findData()
     for(var i = 0; i < list.length; i++)
     {
         var found = true;
+        var visited = false;
         for(var j = 0; j < lookupKeys.length; j++)
         {
             if(lookupKeys[j] && lookupArgs[j])
             {
+                visited = true;
                 var cleanedData = removeDiacritics(list[i].properties[lookupKeys[j]]);
                 var cleanedArg = removeDiacritics(lookupArgs[j]);
                 if(cleanedData.search(cleanedArg) == -1)
@@ -398,12 +446,17 @@ function findData()
                 }
             }
         }
-        if(found)
+        if(found && visited)
         {
             results.push({[outputKey]: list[i].properties[outputKey]});
         }
     }
-    console.log("Results: " + JSON.stringify(results));
+    console.log(results);
+    console.log(results.length);
+    if(!results.length)
+    {
+        results.push(outputRandom(noResult));
+    }
     return results;
 }
 
@@ -414,16 +467,42 @@ function resetStorage()
     var outputKey = null;
     var list = null;
 }
+
+// Returns a random greeting :D
+function outputRandom(list)
+{
+    max = list.length;
+    var randomIndex = (Math.floor(Math.random() * (max - 1)) + (max - Math.floor(Math.random() * (max - 1)))) / 2;
+    return list[Math.floor(randomIndex)];
+}
 //[]
 // START THE SERVER
 // =============================================================================
 
 //Lookup variables
 var outputKeys = {
-    'eventLocationRequest': "LIEU",
     'eventRequest': "NOM",
-    'eventTimeRequest': "DATE1"
+    'dateTimeRequest': "DATE1",
+    'eventInfo': "", //TODO
+    'eventLocationRequest': "LIEU",
+    'greeting': "greet"
 }
+var greeting = [
+    "Bonjour! Heureux de faire ta connaissance",
+    "Justement, je pensais à toi!",
+    "H-e-l-l-o h-u-m-a-n.... je rigole",
+    "Sorry, my translation unit is broken...",
+    ":|... :)... :D... <3!",
+    "Bonjour"
+]
+var noResult = [
+    "Je n'ai rien pu trouver",
+    "Rien ne semble correspondre à ça!",
+    "23456987 itérations. 0 résultats.",
+    "C'est embarrassant....",
+    ":(",
+    "Il n'y a pas de résultats"
+]
 
 //wit variables
 const sessions = {};
@@ -437,6 +516,7 @@ var list = null;
 
 //data
 var events = JSON.parse(fs.readFileSync(__dirname + '/data/Événements_2017.geojson')).features;
+//events = fixDates(events, "DATE1"); //TODO
 
 //Go
 app.listen(port);
