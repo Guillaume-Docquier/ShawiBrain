@@ -285,9 +285,17 @@ const actions = {
     greet({context, entities})
     {
         console.log("Greet!");
-        confidence = entities.intent.confidence;
+        if(entities.intent)
+        {
+            console.log(entities);
+            confidence = entities.intent.confidence;
+        }
+        else
+        {
+            console.log("I did not get that.");
+            confidence = 0;
+        }
 
-        console.log(entities);
         outputKey = "greet";
         return context;
     },
@@ -630,9 +638,10 @@ var noResult = [
     "Il n'y a pas de résultats"
 ]
 var noConfidence = [
+    "Quoi?",
     "Je n'ai pas compris",
     "C'est du chinois tout ça!",
-    "Ask Google...",
+    "Cherche sur Google...",
     "Comment suis-je sensée savoir?",
     "Sorry, my translation unit is broken..."
 ]
