@@ -250,48 +250,84 @@ function fixDate(stringDate)
 
 // WIT.AI
 // =============================================================================
-const accessToken = "NELAEL4JFFZGGW3VLOZTKCQH3VVDTDOJ"
+const accessToken = "ODITAULSDCDKRM3LSQ367SXTCEQGT7F6"
 
 const firstEntityValue = (entities, entity) => {
-  const val = entities && entities[entity] &&
+    const val = entities && entities[entity] &&
     Array.isArray(entities[entity]) &&
     entities[entity].length > 0 &&
     entities[entity][0].value
-  ;
-  if (!val) {
-    return null;
-  }
-  return typeof val === 'object' ? val.value : val;
+    ;
+    if (!val) {
+        return null;
+    }
+    return typeof val === 'object' ? val.value : val;
 };
 
 const actions = {
-  send(request, response) {
-    const {sessionId, context, entities} = request;
-    const {text, quickreplies} = response;
-    console.log('sending...', JSON.stringify(response));
-  },
+    send(request, response) {
+        const {sessionId, context, entities} = request;
+        const {text, quickreplies} = response;
+        console.log('sending...', JSON.stringify(response));
+    },
 
-  findEvents({context, entities}){
-    //Get info
-    var eventType = firstEntityValue(entities, 'eventType');
-    var time      = firstEntityValue(entities, 'datetime');
-    var location  = firstEntityValue(entities, 'timestamp');
-    var eventName = firstEntityValue(entities, 'eventName');
+    greet({context, entities})
+    {
+        console.log("Greet!");
+        confidence = entities.intent.confidence;
 
-    //Logging
-    console.log("eventType: " + eventType);
-    console.log("time: " + time);
-    console.log("location: " + location);
-    console.log(entities);
+        console.log(entities);
+        outputKey = "greet";
+        return context;
+    },
 
-    //Load storage variables
-    lookupKeys = ["TYPE", "LIEU", "NOM", "DATE1"]; //TODO add time
-    lookupArgs = [eventType, location, eventName, null]; //TODO add time
-    outputKey = outputKeys[firstEntityValue(entities, 'intent')];
-    list = events;
+    findEvents({context, entities})
+    {
+        console.log("Event!");
+        confidence = entities.intent.confidence;
 
-    return context;
-  }
+        //Get info
+        var eventType = firstEntityValue(entities, 'eventType');
+        var time      = firstEntityValue(entities, 'datetime');
+        var location  = firstEntityValue(entities, 'location');
+        var eventName = firstEntityValue(entities, 'eventName');
+
+        //Logging
+        console.log("eventType: " + eventType);
+        console.log("time: " + time);
+        console.log("location: " + location);
+        console.log(entities);
+
+        //Load storage variables
+        lookupKeys = ["TYPE", "LIEU", "NOM", "DATE1"]; //TODO add time
+        lookupArgs = [eventType, location, eventName, null]; //TODO add time
+        outputKey = outputKeys[firstEntityValue(entities, 'intent')];
+        list = events;
+
+        return context;
+    },
+
+    findPatrimoine({context, entities})
+    {
+        console.log("Patrimoine!");
+        confidence = entities.intent.confidence;
+
+        //Get info
+        var buildingType  = firstEntityValue(entities, 'buildingType');
+        var quantity;
+
+        //Logging
+        console.log("buildingType: " + buildingType);
+        console.log(entities);
+
+        //Load storage variables
+        lookupKeys = ["Desc_", "Nom_Patrim"];
+        lookupArgs = [buildingType, buildingType];
+        outputKey = outputKeys.patrimoine[firstEntityValue(entities, 'intent')];
+        list = patrimoine;
+
+        return context;
+    }
 };
 
 const findOrCreateSession = (fbid) => {
@@ -328,12 +364,22 @@ function sendRequestToWit(req, callback){
     ).then((context) => {
 		var data;
 
-        if(outputKey == 'greet')
+        if(confidence < acceptanceTreshold)
+        {
+            data = outputRandom(noConfidence);
+        }
+        else if(outputKey == 'greet')
         {
             data = outputRandom(greeting);
         }
-        else { //Find your data
+        else
+        {
             data = findData();
+            if(outputKey == 'locationRequest')
+            {
+                list = data;
+                data = findLocation();
+            }
         }
 
         //Reset storage variables
@@ -403,8 +449,13 @@ router.post('/brain', function(req, res)
 {
     console.log("POST on /brain...");
     console.log("With message: " + JSON.stringify(req.body.message));
+    //clientPosition = req.body.location;
+    //TODO THIS IS HARDCODED
+    clientPosition = {
+               lng: -72.74160759150537,
+               lat: 46.53808432767501
+           }
     sendRequestToWit(removeDiacritics(req.body.message), function(data) {
-        console.log("Answer: " + data);
         res.json({reponse: data});
     })
 });
@@ -422,6 +473,38 @@ app.use('/api', router);
 // @lookupArgs
 // @outputKey
 // @list
+// @clientPosition
+// =============================================================================
+
+//Find distance between 2 coords
+function distance(latLngJson, lngLatArray)
+{
+    var distanceLng = lngLatArray[0] - latLngJson.lng;
+    var distanceLat = lngLatArray[1] - latLngJson.lat;
+    return Math.sqrt(Math.pow(distanceLng, 2) + Math.pow(distanceLat, 2));
+}
+function findLocation()
+{
+    //Empty list
+    if(!list || list.length == 0)
+    {
+        return [];
+    }
+
+    //Find closest
+    var closest = distance(clientPosition, list[0].geometry.coordinates);
+    var closestIndex = 0;
+    for(var i = 1; i < list.length; i++)
+    {
+        locationCoordinates = list[i].geometry.coordinates;
+        if(closest > distance(clientPosition, locationCoordinates))
+        {
+            closest = locationCoordinates;
+            closestIndex = i;
+        }
+    }
+    return list[i];
+}
 function findData()
 {
     var results = [];
@@ -432,27 +515,31 @@ function findData()
     for(var i = 0; i < list.length; i++)
     {
         var found = true;
-        var visited = false;
         for(var j = 0; j < lookupKeys.length; j++)
         {
             if(lookupKeys[j] && lookupArgs[j])
             {
-                visited = true;
                 var cleanedData = removeDiacritics(list[i].properties[lookupKeys[j]]);
                 var cleanedArg = removeDiacritics(lookupArgs[j]);
+                console.log("cleanedData: " + cleanedData + ", cleanedArg: " + cleanedArg);
                 if(cleanedData.search(cleanedArg) == -1)
                 {
                     found = false;
                 }
             }
         }
-        if(found && visited)
+        if(found)
         {
-            results.push({[outputKey]: list[i].properties[outputKey]});
+            if(outputKey == "ALL")
+            {
+                results.push(list[i]);
+            }
+            else
+            {
+                results.push({[outputKey]: list[i].properties[outputKey]});
+            }
         }
     }
-    console.log(results);
-    console.log(results.length);
     if(!results.length)
     {
         results.push(outputRandom(noResult));
@@ -481,19 +568,27 @@ function outputRandom(list)
 
 //Lookup variables
 var outputKeys = {
-    'eventRequest': "NOM",
-    'dateTimeRequest': "DATE1",
-    'eventInfo': "", //TODO
-    'eventLocationRequest': "LIEU",
-    'greeting': "greet"
+    'event':
+    {
+        'eventRequest': "NOM",
+        'dateTimeRequest': "DATE1",
+        'eventInfo': "ALL", //TODO
+        'locationRequest': "LIEU"
+    },
+    'patrimoine':
+    {
+        'patrimoineInfo': "ALL",
+        'locationRequest': "ALL", //TODO
+        'positionRequest': "ALL" //TODO
+    }
 }
 var greeting = [
     "Bonjour! Heureux de faire ta connaissance",
     "Justement, je pensais à toi!",
     "H-e-l-l-o h-u-m-a-n.... je rigole",
-    "Sorry, my translation unit is broken...",
     ":|... :)... :D... <3!",
-    "Bonjour"
+    "Bonjour",
+    "Je m'appelle Shawi!"
 ]
 var noResult = [
     "Je n'ai rien pu trouver",
@@ -501,7 +596,11 @@ var noResult = [
     "23456987 itérations. 0 résultats.",
     "C'est embarrassant....",
     ":(",
+    "Sorry, my translation unit is broken...",
     "Il n'y a pas de résultats"
+]
+var noConfidence = [
+    "Je n'ai pas compris"
 ]
 
 //wit variables
@@ -509,12 +608,16 @@ const sessions = {};
 const client = new wit({accessToken, actions});
 
 //Storage variables
+var acceptanceTreshold = 0.75;
+var confidence = null;
 var lookupKeys = null;
 var lookupArgs = null;
 var outputKey = null;
 var list = null;
+var clientPosition = null;
 
 //data
+var patrimoine = JSON.parse(fs.readFileSync(__dirname + '/data/Bâtiments_patrimoniaux.geojson')).features;
 var events = JSON.parse(fs.readFileSync(__dirname + '/data/Événements_2017.geojson')).features;
 //events = fixDates(events, "DATE1"); //TODO
 
