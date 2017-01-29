@@ -326,7 +326,7 @@ const actions = {
         lookupKeys = ["TYPE", "LIEU", "NOM", "DATE1", "LIEU"]; //TODO add time
         lookupArgs = [eventType, location, eventName, null, buildingType]; //TODO add time
         outputKey = outputKeys.event[intent];
-        console.log("outputKey: " + outputKey);
+        //console.log("outputKey: " + outputKey);
         list = events;
 
         return context;
@@ -344,6 +344,7 @@ const actions = {
 
         //Logging
         console.log("buildingType: " + buildingType);
+        console.log("intent: " + intent);
         console.log(entities);
 
         //Load storage variables
@@ -549,7 +550,7 @@ function findData()
         var hits = 0;
         for(var j = 0; j < lookupKeys.length; j++)
         {
-            console.log("lookupKeys: " + lookupKeys[j] + ", lookupArgs: " + lookupArgs[j]);
+            //console.log("lookupKeys: " + lookupKeys[j] + ", lookupArgs: " + lookupArgs[j]);
             if(lookupKeys[j] && lookupArgs[j])
             {
                 var cleanedData = removeDiacritics(list[i].properties[lookupKeys[j]]);
@@ -561,9 +562,9 @@ function findData()
                 else
                 {
                     hits++;
-                    console.log("cleanedData: " + cleanedData + ", cleanedArg: " + cleanedArg);
+                    //console.log("cleanedData: " + cleanedData + ", cleanedArg: " + cleanedArg);
                     //console.log("outputKey: " + outputKey);
-                    console.log("found: " + found + ", lookupKeys.length: " + lookupKeys.length + ", j: " + j);
+                    //console.log("found: " + found + ", lookupKeys.length: " + lookupKeys.length + ", j: " + j);
                 }
             }
         }
