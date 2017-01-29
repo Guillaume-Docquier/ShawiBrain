@@ -303,7 +303,16 @@ const actions = {
     findEvents({context, entities})
     {
         console.log("Event!");
-        confidence = entities.intent.confidence;
+        if(entities.intent)
+        {
+            console.log(entities);
+            confidence = entities.intent.confidence;
+        }
+        else
+        {
+            console.log("I did not get that.");
+            confidence = 0;
+        }
 
         //Get info
         var eventType     = firstEntityValue(entities, 'eventType');
@@ -335,7 +344,16 @@ const actions = {
     findPatrimoine({context, entities})
     {
         console.log("Patrimoine!");
-        confidence = entities.intent.confidence;
+        if(entities.intent)
+        {
+            console.log(entities);
+            confidence = entities.intent.confidence;
+        }
+        else
+        {
+            console.log("I did not get that.");
+            confidence = 0;
+        }
 
         //Get info
         var buildingType  = firstEntityValue(entities, 'buildingType');
@@ -643,8 +661,10 @@ var noConfidence = [
     "Je n'ai pas compris",
     "C'est du chinois tout ça!",
     "Cherche sur Google...",
-    "Comment suis-je sensée savoir?",
-    "Sorry, my translation unit is broken..."
+    "Il va falloir m'expliquer",
+    "Peux tu répéter?",
+    "Sorry, my translation unit is broken...",
+    "Comment suis-je sensée savoir?"
 ]
 
 //wit variables
