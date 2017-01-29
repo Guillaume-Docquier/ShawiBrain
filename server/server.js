@@ -591,7 +591,7 @@ function outputRandom(list, key)
 {
     max = list.length;
     var randomIndex = (Math.floor(Math.random() * (max - 1)) + (max - Math.floor(Math.random() * (max - 1)))) / 2;
-    return {[key]: list[Math.floor(randomIndex)]};
+    return [{[key]: list[Math.floor(randomIndex)]}];
 }
 //[]
 // START THE SERVER
