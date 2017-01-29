@@ -143,8 +143,19 @@ function fixDates(list, lookupKey)
     for(var i = 0; i < list.length; i++)
     {
         list[i].properties[lookupKey] = fixDate(list[i].properties[lookupKey]);
-        console.log("Dates: " + JSON.stringify(list[i].properties[lookupKey]));
+        //console.log("Dates: " + JSON.stringify(list[i].properties[lookupKey]));
     }
+    return list;
+}
+
+//Remove redundant coords
+function fixCoords(list)
+{
+    for(var i = 0; i < list.length; i++)
+    {
+        list[i].geometry.coordinates = list[i].geometry.coordinates[0][0];
+    }
+    return list;
 }
 
 //Fix date format
@@ -287,10 +298,11 @@ const actions = {
         confidence = entities.intent.confidence;
 
         //Get info
-        var eventType = firstEntityValue(entities, 'eventType');
-        var time      = firstEntityValue(entities, 'datetime');
-        var location  = firstEntityValue(entities, 'location');
-        var eventName = firstEntityValue(entities, 'eventName');
+        var eventType     = firstEntityValue(entities, 'eventType');
+        var time          = firstEntityValue(entities, 'datetime');
+        var location      = firstEntityValue(entities, 'location');
+        var buildingType  = firstEntityValue(entities, 'buildingType');
+        var eventName     = firstEntityValue(entities, 'eventName');
 
         //Logging
         console.log("eventType: " + eventType);
@@ -299,8 +311,8 @@ const actions = {
         console.log(entities);
 
         //Load storage variables
-        lookupKeys = ["TYPE", "LIEU", "NOM", "DATE1"]; //TODO add time
-        lookupArgs = [eventType, location, eventName, null]; //TODO add time
+        lookupKeys = ["TYPE", "LIEU", "NOM", "DATE1", "LIEU"]; //TODO add time
+        lookupArgs = [eventType, location, eventName, null, buildingType]; //TODO add time
         outputKey = outputKeys[firstEntityValue(entities, 'intent')];
         list = events;
 
@@ -366,19 +378,19 @@ function sendRequestToWit(req, callback){
 
         if(confidence < acceptanceTreshold)
         {
-            data = outputRandom(noConfidence);
+            data = outputRandom(noConfidence, "error");
         }
         else if(outputKey == 'greet')
         {
-            data = outputRandom(greeting);
+            data = outputRandom(greeting, "greeting");
         }
         else
         {
             data = findData();
-            if(outputKey == 'locationRequest')
+            if(outputKey == 'positionRequest')
             {
                 list = data;
-                data = findLocation();
+                data = findClosestLocation();
             }
         }
 
@@ -483,27 +495,29 @@ function distance(latLngJson, lngLatArray)
     var distanceLat = lngLatArray[1] - latLngJson.lat;
     return Math.sqrt(Math.pow(distanceLng, 2) + Math.pow(distanceLat, 2));
 }
-function findLocation()
+function findClosestLocation()
 {
     //Empty list
+    var closestItem;
     if(!list || list.length == 0)
     {
-        return [];
+        return closestItem;
     }
 
     //Find closest
-    var closest = distance(clientPosition, list[0].geometry.coordinates);
+    var smallestDistance = distance(clientPosition, list[0].geometry.coordinates);
     var closestIndex = 0;
     for(var i = 1; i < list.length; i++)
     {
-        locationCoordinates = list[i].geometry.coordinates;
-        if(closest > distance(clientPosition, locationCoordinates))
+        distance = distance(clientPosition, list[i].geometry.coordinates);
+        if(smallestDistance > distance)
         {
-            closest = locationCoordinates;
+            smallestDistance = distance;
             closestIndex = i;
         }
     }
-    return list[i];
+    closestItem = list[closestIndex];
+    return closestItem;
 }
 function findData()
 {
@@ -521,7 +535,7 @@ function findData()
             {
                 var cleanedData = removeDiacritics(list[i].properties[lookupKeys[j]]);
                 var cleanedArg = removeDiacritics(lookupArgs[j]);
-                console.log("cleanedData: " + cleanedData + ", cleanedArg: " + cleanedArg);
+                //console.log("cleanedData: " + cleanedData + ", cleanedArg: " + cleanedArg);
                 if(cleanedData.search(cleanedArg) == -1)
                 {
                     found = false;
@@ -556,11 +570,11 @@ function resetStorage()
 }
 
 // Returns a random greeting :D
-function outputRandom(list)
+function outputRandom(list, key)
 {
     max = list.length;
     var randomIndex = (Math.floor(Math.random() * (max - 1)) + (max - Math.floor(Math.random() * (max - 1)))) / 2;
-    return list[Math.floor(randomIndex)];
+    return {[key]: list[Math.floor(randomIndex)]};
 }
 //[]
 // START THE SERVER
@@ -619,6 +633,7 @@ var clientPosition = null;
 //data
 var patrimoine = JSON.parse(fs.readFileSync(__dirname + '/data/Bâtiments_patrimoniaux.geojson')).features;
 var events = JSON.parse(fs.readFileSync(__dirname + '/data/Événements_2017.geojson')).features;
+patrimoine = fixCoords(patrimoine);
 //events = fixDates(events, "DATE1"); //TODO
 
 //Go
